@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, RefreshCcw } from "lucide-react";
+import { Pencil, Plus, RefreshCcw, Trash2, X } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { StatusBadge } from "@/components/dashboard/status-badge";
@@ -13,12 +13,26 @@ import type { CreateLeadResponse, Lead, LeadsResponse } from "@/types";
 type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "CLOSED" | "LOST";
 type LeadSource = "WEBSITE" | "ADS" | "CALL" | "REFERRAL" | "MANUAL";
 
+interface EditLeadFormState {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  source: LeadSource;
+  budgetMin: string;
+  budgetMax: string;
+  preferences: string;
+  notes: string;
+}
+
 export default function LeadsPage() {
   const router = useRouter();
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const [fullName, setFullName] = useState("");
@@ -29,6 +43,8 @@ export default function LeadsPage() {
   const [budgetMax, setBudgetMax] = useState("");
   const [preferences, setPreferences] = useState("");
   const [notes, setNotes] = useState("");
+
+  const [editingLead, setEditingLead] = useState<EditLeadFormState | null>(null);
 
   const fetchLeads = async () => {
     setError("");
@@ -63,6 +79,17 @@ export default function LeadsPage() {
     void loadLeads();
   }, [router]);
 
+  const resetCreateForm = () => {
+    setFullName("");
+    setPhone("");
+    setEmail("");
+    setSource("MANUAL");
+    setBudgetMin("");
+    setBudgetMax("");
+    setPreferences("");
+    setNotes("");
+  };
+
   const handleCreateLead = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setCreating(true);
@@ -83,14 +110,7 @@ export default function LeadsPage() {
       const response = await api.post<CreateLeadResponse>("/leads", payload);
 
       setLeads((prev) => [response.data.data, ...prev]);
-      setFullName("");
-      setPhone("");
-      setEmail("");
-      setSource("MANUAL");
-      setBudgetMin("");
-      setBudgetMax("");
-      setPreferences("");
-      setNotes("");
+      resetCreateForm();
     } catch {
       setError("Failed to create lead.");
     } finally {
@@ -109,6 +129,91 @@ export default function LeadsPage() {
       );
     } catch {
       setError("Failed to update lead status.");
+    }
+  };
+
+  const handleStartEdit = (lead: Lead) => {
+    setEditingLead({
+      id: lead.id,
+      fullName: lead.fullName,
+      phone: lead.phone,
+      email: lead.email ?? "",
+      source: lead.source,
+      budgetMin:
+        lead.budgetMin !== null && lead.budgetMin !== undefined
+          ? String(lead.budgetMin)
+          : "",
+      budgetMax:
+        lead.budgetMax !== null && lead.budgetMax !== undefined
+          ? String(lead.budgetMax)
+          : "",
+      preferences: lead.preferences ?? "",
+      notes: lead.notes ?? "",
+    });
+  };
+
+  const handleEditLead = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!editingLead) {
+      return;
+    }
+
+    setUpdating(true);
+    setError("");
+
+    try {
+      const payload = {
+        fullName: editingLead.fullName,
+        phone: editingLead.phone,
+        email: editingLead.email || undefined,
+        source: editingLead.source,
+        budgetMin: editingLead.budgetMin
+          ? Number(editingLead.budgetMin)
+          : undefined,
+        budgetMax: editingLead.budgetMax
+          ? Number(editingLead.budgetMax)
+          : undefined,
+        preferences: editingLead.preferences || undefined,
+        notes: editingLead.notes || undefined,
+      };
+
+      const response = await api.patch<CreateLeadResponse>(
+        `/leads/${editingLead.id}`,
+        payload
+      );
+
+      setLeads((prev) =>
+        prev.map((lead) =>
+          lead.id === editingLead.id ? response.data.data : lead
+        )
+      );
+
+      setEditingLead(null);
+    } catch {
+      setError("Failed to update lead.");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteLead = async (leadId: string) => {
+    const confirmed = window.confirm("Are you sure you want to delete this lead?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingId(leadId);
+    setError("");
+
+    try {
+      await api.delete(`/leads/${leadId}`);
+      setLeads((prev) => prev.filter((lead) => lead.id !== leadId));
+    } catch {
+      setError("Failed to delete lead.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -213,6 +318,140 @@ export default function LeadsPage() {
             ) : null}
           </section>
 
+          {editingLead ? (
+            <section className="rounded-2xl bg-white p-6 shadow-sm">
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900">Edit Lead</h2>
+                <button
+                  onClick={() => setEditingLead(null)}
+                  className="rounded-xl border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <form
+                onSubmit={handleEditLead}
+                className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+              >
+                <input
+                  className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
+                  placeholder="Full name"
+                  value={editingLead.fullName}
+                  onChange={(e) =>
+                    setEditingLead((prev) =>
+                      prev ? { ...prev, fullName: e.target.value } : prev
+                    )
+                  }
+                  required
+                />
+
+                <input
+                  className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
+                  placeholder="Phone"
+                  value={editingLead.phone}
+                  onChange={(e) =>
+                    setEditingLead((prev) =>
+                      prev ? { ...prev, phone: e.target.value } : prev
+                    )
+                  }
+                  required
+                />
+
+                <input
+                  className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
+                  placeholder="Email"
+                  value={editingLead.email}
+                  onChange={(e) =>
+                    setEditingLead((prev) =>
+                      prev ? { ...prev, email: e.target.value } : prev
+                    )
+                  }
+                />
+
+                <select
+                  className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
+                  value={editingLead.source}
+                  onChange={(e) =>
+                    setEditingLead((prev) =>
+                      prev
+                        ? { ...prev, source: e.target.value as LeadSource }
+                        : prev
+                    )
+                  }
+                >
+                  <option value="MANUAL">MANUAL</option>
+                  <option value="WEBSITE">WEBSITE</option>
+                  <option value="ADS">ADS</option>
+                  <option value="CALL">CALL</option>
+                  <option value="REFERRAL">REFERRAL</option>
+                </select>
+
+                <input
+                  className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
+                  placeholder="Budget Min"
+                  value={editingLead.budgetMin}
+                  onChange={(e) =>
+                    setEditingLead((prev) =>
+                      prev ? { ...prev, budgetMin: e.target.value } : prev
+                    )
+                  }
+                />
+
+                <input
+                  className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
+                  placeholder="Budget Max"
+                  value={editingLead.budgetMax}
+                  onChange={(e) =>
+                    setEditingLead((prev) =>
+                      prev ? { ...prev, budgetMax: e.target.value } : prev
+                    )
+                  }
+                />
+
+                <input
+                  className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400 md:col-span-2 xl:col-span-1"
+                  placeholder="Preferences"
+                  value={editingLead.preferences}
+                  onChange={(e) =>
+                    setEditingLead((prev) =>
+                      prev ? { ...prev, preferences: e.target.value } : prev
+                    )
+                  }
+                />
+
+                <input
+                  className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400 md:col-span-2"
+                  placeholder="Notes"
+                  value={editingLead.notes}
+                  onChange={(e) =>
+                    setEditingLead((prev) =>
+                      prev ? { ...prev, notes: e.target.value } : prev
+                    )
+                  }
+                />
+
+                <div className="md:col-span-2 xl:col-span-3 flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={updating}
+                    className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white transition hover:bg-slate-800 disabled:opacity-70"
+                  >
+                    {updating ? "Updating..." : "Update Lead"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEditingLead(null)}
+                    className="rounded-xl border border-slate-200 px-5 py-3 font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </section>
+          ) : null}
+
           <section className="rounded-2xl bg-white p-6 shadow-sm">
             <div className="mb-5 flex items-center justify-between">
               <div>
@@ -289,7 +528,7 @@ export default function LeadsPage() {
                         ) : null}
                       </div>
 
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 sm:min-w-[180px]">
                         <select
                           className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
                           value={lead.status}
@@ -306,6 +545,23 @@ export default function LeadsPage() {
                           <option value="CLOSED">CLOSED</option>
                           <option value="LOST">LOST</option>
                         </select>
+
+                        <button
+                          onClick={() => handleStartEdit(lead)}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteLead(lead.id)}
+                          disabled={deletingId === lead.id}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-70"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {deletingId === lead.id ? "Deleting..." : "Delete"}
+                        </button>
                       </div>
                     </div>
                   </div>
