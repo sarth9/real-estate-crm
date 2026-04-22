@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, RefreshCcw } from "lucide-react";
+import { Building2, RefreshCcw, Upload } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { PropertyStatusBadge } from "@/components/dashboard/property-status-badge";
@@ -122,10 +122,26 @@ export default function PropertiesPage() {
     }
   };
 
+  const handleImageUpload = async (propertyId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      await api.post(`/properties/${propertyId}/images`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      await fetchProperties();
+    } catch {
+      setError("Failed to upload property image.");
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-
       <div className="flex-1">
         <Topbar title="Properties" />
 
@@ -142,115 +158,30 @@ export default function PropertiesPage() {
               onSubmit={handleCreateProperty}
               className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
             >
-              <input
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
-                placeholder="Property title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-              />
-
-              <select
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
-                value={type}
-                onChange={(e) => setType(e.target.value as PropertyType)}
-              >
+              <input className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400" placeholder="Property title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+              <select className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400" value={type} onChange={(e) => setType(e.target.value as PropertyType)}>
                 <option value="RESIDENTIAL">RESIDENTIAL</option>
                 <option value="COMMERCIAL">COMMERCIAL</option>
               </select>
-
-              <input
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
-                placeholder="Address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                required
-              />
-
-              <input
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
-                placeholder="City"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                required
-              />
-
-              <input
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
-                placeholder="State"
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-              />
-
-              <input
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
-                placeholder="Country"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-              />
-
-              <input
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
-                placeholder="Price"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-              />
-
-              <input
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
-                placeholder="Size (sqft)"
-                value={sizeSqft}
-                onChange={(e) => setSizeSqft(e.target.value)}
-              />
-
-              <input
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
-                placeholder="Bedrooms"
-                value={bedrooms}
-                onChange={(e) => setBedrooms(e.target.value)}
-              />
-
-              <input
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
-                placeholder="Bathrooms"
-                value={bathrooms}
-                onChange={(e) => setBathrooms(e.target.value)}
-              />
-
-              <select
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
-                value={availabilityStatus}
-                onChange={(e) =>
-                  setAvailabilityStatus(e.target.value as PropertyAvailability)
-                }
-              >
+              <input className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400" placeholder="Address" value={address} onChange={(e) => setAddress(e.target.value)} required />
+              <input className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} required />
+              <input className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400" placeholder="State" value={state} onChange={(e) => setState(e.target.value)} />
+              <input className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400" placeholder="Country" value={country} onChange={(e) => setCountry(e.target.value)} />
+              <input className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} required />
+              <input className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400" placeholder="Size (sqft)" value={sizeSqft} onChange={(e) => setSizeSqft(e.target.value)} />
+              <input className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400" placeholder="Bedrooms" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} />
+              <input className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400" placeholder="Bathrooms" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} />
+              <select className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400" value={availabilityStatus} onChange={(e) => setAvailabilityStatus(e.target.value as PropertyAvailability)}>
                 <option value="AVAILABLE">AVAILABLE</option>
                 <option value="BOOKED">BOOKED</option>
                 <option value="SOLD">SOLD</option>
                 <option value="RENTED">RENTED</option>
               </select>
-
-              <input
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400 md:col-span-2 xl:col-span-1"
-                placeholder="Amenities"
-                value={amenities}
-                onChange={(e) => setAmenities(e.target.value)}
-              />
-
-              <input
-                className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400 md:col-span-2 xl:col-span-3"
-                placeholder="Description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
+              <input className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400 md:col-span-2 xl:col-span-1" placeholder="Amenities" value={amenities} onChange={(e) => setAmenities(e.target.value)} />
+              <input className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400 md:col-span-2 xl:col-span-3" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
 
               <div className="md:col-span-2 xl:col-span-3">
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white transition hover:bg-slate-800 disabled:opacity-70"
-                >
+                <button type="submit" disabled={creating} className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white transition hover:bg-slate-800 disabled:opacity-70">
                   {creating ? "Creating..." : "Create Property"}
                 </button>
               </div>
@@ -301,60 +232,44 @@ export default function PropertiesPage() {
                       <h3 className="text-lg font-semibold text-slate-900">
                         {property.title}
                       </h3>
-                      <PropertyStatusBadge
-                        status={property.availabilityStatus}
+                      <PropertyStatusBadge status={property.availabilityStatus} />
+                    </div>
+
+                    {property.images?.[0] ? (
+                      <img
+                        src={property.images[0].imageUrl}
+                        alt={property.title}
+                        className="mb-3 h-44 w-full rounded-xl object-cover"
                       />
+                    ) : null}
+
+                    <div className="mb-3">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                        <Upload className="h-4 w-4" />
+                        Upload Image
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              void handleImageUpload(property.id, file);
+                            }
+                          }}
+                        />
+                      </label>
                     </div>
 
                     <div className="space-y-2 text-sm text-slate-600">
-                      <p>
-                        <span className="font-medium">Type:</span> {property.type}
-                      </p>
-                      <p>
-                        <span className="font-medium">Price:</span>{" "}
-                        {formatCurrency(property.price)}
-                      </p>
-                      <p>
-                        <span className="font-medium">Address:</span>{" "}
-                        {property.address}, {property.city}
-                      </p>
-
-                      {property.sizeSqft ? (
-                        <p>
-                          <span className="font-medium">Size:</span>{" "}
-                          {property.sizeSqft} sqft
-                        </p>
-                      ) : null}
-
-                      {property.bedrooms !== null &&
-                      property.bedrooms !== undefined ? (
-                        <p>
-                          <span className="font-medium">Bedrooms:</span>{" "}
-                          {property.bedrooms}
-                        </p>
-                      ) : null}
-
-                      {property.bathrooms !== null &&
-                      property.bathrooms !== undefined ? (
-                        <p>
-                          <span className="font-medium">Bathrooms:</span>{" "}
-                          {property.bathrooms}
-                        </p>
-                      ) : null}
-
-                      {property.amenities ? (
-                        <p>
-                          <span className="font-medium">Amenities:</span>{" "}
-                          {property.amenities}
-                        </p>
-                      ) : null}
-
-                      {property.description ? (
-                        <p>
-                          <span className="font-medium">Description:</span>{" "}
-                          {property.description}
-                        </p>
-                      ) : null}
+                      <p><span className="font-medium">Type:</span> {property.type}</p>
+                      <p><span className="font-medium">Price:</span> {formatCurrency(property.price)}</p>
+                      <p><span className="font-medium">Address:</span> {property.address}, {property.city}</p>
+                      {property.sizeSqft ? <p><span className="font-medium">Size:</span> {property.sizeSqft} sqft</p> : null}
+                      {property.bedrooms !== null && property.bedrooms !== undefined ? <p><span className="font-medium">Bedrooms:</span> {property.bedrooms}</p> : null}
+                      {property.bathrooms !== null && property.bathrooms !== undefined ? <p><span className="font-medium">Bathrooms:</span> {property.bathrooms}</p> : null}
+                      {property.amenities ? <p><span className="font-medium">Amenities:</span> {property.amenities}</p> : null}
+                      {property.description ? <p><span className="font-medium">Description:</span> {property.description}</p> : null}
                     </div>
                   </div>
                 ))}

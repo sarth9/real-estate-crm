@@ -76,6 +76,13 @@ export interface CreateLeadResponse {
   data: Lead;
 }
 
+export interface PropertyImage {
+  id: string;
+  imageUrl: string;
+  publicId?: string | null;
+  createdAt: string;
+}
+
 export interface Property {
   id: string;
   title: string;
@@ -101,6 +108,7 @@ export interface Property {
     email: string;
     role: "ADMIN" | "MANAGER" | "AGENT";
   } | null;
+  images?: PropertyImage[];
 }
 
 export interface PropertiesResponse {
@@ -146,6 +154,15 @@ export interface CreateClientResponse {
   data: Client;
 }
 
+export interface DealDocument {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  publicId?: string | null;
+  category: "AGREEMENT" | "CONTRACT" | "ID_PROOF" | "OTHER";
+  createdAt: string;
+}
+
 export interface Deal {
   id: string;
   title: string;
@@ -176,6 +193,7 @@ export interface Deal {
     email: string;
     role: "ADMIN" | "MANAGER" | "AGENT";
   };
+  documents?: DealDocument[];
 }
 
 export interface DealsResponse {
